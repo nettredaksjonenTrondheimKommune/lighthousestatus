@@ -1,26 +1,32 @@
 import './App.css';
 import React from 'react';
-import { makeStyles } from '@material-ui/core/styles';
 import {
-    Grid,
-    Card,
-    CardHeader,
-    CardContent,
-    Typography,
-    CircularProgress
+  makeStyles,
+  withStyles
+} from '@material-ui/core/styles';
+import {
+  Tooltip,
+  Typography,
+  CircularProgress,
+  Grid
 } from '@material-ui/core/';
+import MuiAccordion from '@material-ui/core/Accordion';
+import MuiAccordionSummary from '@material-ui/core/AccordionSummary';
+import MuiAccordionDetails from '@material-ui/core/AccordionDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import LinkIcon from '@material-ui/icons/Link';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles((theme) => ({
   root: {
-    minWidth: 250
+    width: '100%',
+    textAlign: 'center'
   },
-  title: {
-    fontSize: 14
+  heading: {
+    flexBasis: '50%',
+    flexShrink: 0
   },
-  pos: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center"
+  secondaryHeading: {
+    color: theme.palette.text.secondary
   },
   barColorGreen: {
     color: "green",
@@ -31,13 +37,78 @@ const useStyles = makeStyles({
   barColorRed: {
     color: "red"
   }
-});
+}));
+
+const Accordion = withStyles({
+  root: {
+    border: '1px solid rgba(0, 0, 0, .125)',
+    boxShadow: 'none',
+    '&:before': {
+      display: 'none'
+    },
+    '&$expanded': {
+      margin: '30px'
+    }
+  },
+  expanded: {}
+})(MuiAccordion);
+
+const AccordionSummary = withStyles({
+  root: {
+    backgroundColor: 'rgba(0, 0, 0, .03)',
+    borderBottom: '1px solid rgba(0, 0, 0, .125)',
+    marginBottom: -1,
+    minHeight: 56,
+    '&$expanded': {
+      minHeight: 56
+    }
+  },
+  content: {
+    '&$expanded': {
+      margin: '12px 0'
+    }
+  },
+  expanded: {},
+})(MuiAccordionSummary);
+
+const AccordionDetails = withStyles((theme) => ({
+  root: {
+    padding: theme.spacing(2)
+  },
+}))(MuiAccordionDetails);
 
 export default function App() {
+  const [expanded, setExpanded] = React.useState('panel1');
+
+  const handleChange = (panel) => (event, newExpanded) => {
+    setExpanded(newExpanded ? panel : false);
+  };
+
   const classes = useStyles();
-  const json = require('./data.json');
-  const requestedUrl = "Status for: " + json.requestedUrl.slice(0, -1);
-  const data = [json.categories["accessibility"], json.categories["best-practices"], json.categories["performance"], json.categories["seo"]];
+  const jsondataTrondheimKommune = require('./trondheimKommuneRapport.json');
+  const jsondataTrondheim = require('./trondheimRapport.json');
+  const requestedUrlTrondheimKommune = jsondataTrondheimKommune.requestedUrl.slice(0, -1);
+  const tooltipTrondheimKommune = "Gå til " + requestedUrlTrondheimKommune;
+  const requestedUrlTrondheim = jsondataTrondheim.requestedUrl.slice(0, -1);
+  const tooltipTrondheim = "Gå til " + requestedUrlTrondheim;
+  let rapporter = [
+    {'requestedUrl': requestedUrlTrondheimKommune, 'tooltip': tooltipTrondheimKommune},
+    {'requestedUrl': requestedUrlTrondheim, 'tooltip': tooltipTrondheim}
+  ];
+  
+  var rapportDatoData = jsondataTrondheimKommune.fetchTime;
+  var rapportDato = rapportDatoData.split("T");
+  var rapportTidspunkt = rapportDato[1].split(":");
+  rapportTidspunkt = rapportTidspunkt[0] + ":" + rapportTidspunkt[1];
+  rapportDato = rapportDato[0].split("-");
+  rapportDato = rapportDato[2] + "." + rapportDato[1] + "." + rapportDato[0]
+  const rapportTid = "Sist oppdatert: " + rapportDato + " " + rapportTidspunkt;
+  const data = [
+                jsondataTrondheimKommune.categories["accessibility"],
+                jsondataTrondheimKommune.categories["best-practices"],
+                jsondataTrondheimKommune.categories["performance"],
+                jsondataTrondheimKommune.categories["seo"]
+              ];
 
   let cards = data.map(res => ({
     id: res.id,
@@ -47,45 +118,56 @@ export default function App() {
   }));
 
   for (var i = 0; i < cards.length; i++) {
-    if (cards[i].score > 75) {
+    if (cards[i].score > 80) {
       cards[i].barColor = classes.barColorGreen;
-    } else if (cards[i].score < 75 && cards[i].score > 25) {
+    } else if (cards[i].score < 80 && cards[i].score > 30) {
       cards[i].barColor = classes.barColorOrange;
     } else {
       cards[i].barColor = classes.barColorRed;
     }
   }
 
-  const cardContent =
-    (<Grid container className={classes.root} spacing={2}>
-      <Grid item xs={12}>
-        <Grid container justify="center">
-            <Grid item>
-              <Card>
-                <CardHeader title={requestedUrl} />
+  const accordion = (
+    rapporter.map((rapport) => (
+      <Accordion square expanded={expanded === 'panel1'} onChange={handleChange('panel1')}>
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel1d-content"
+          id="panel1d-header">
+          <Typography variant="h5" component="h2" className={classes.heading}>Status for: {rapport.requestedUrl}</Typography>
+          <Typography className={classes.secondaryHeading}><a href={rapport.requestedUrl}><Tooltip title={rapport.tooltip}><LinkIcon /></Tooltip></a></Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Grid container className={classes.root} spacing={3}>
+            <Grid item xs={12}>
+              <Grid container justify="center">
                 {cards.map((card) => (
-                  <CardContent key={card.id}>
-                    <Typography variant="h5" component="h2">
+                  <Grid key={card.id} item xs={3}>
+                    <Typography variant="h6" component="h2">
                       {card.title}
                     </Typography>
-                    <Typography variant="body1" component="h3" color="textSecondary">
+                    <Typography variant="body1" component="h3">
                       <CircularProgress className={card.barColor} variant="determinate" value={card.score} />
                     </Typography>
-                    <Typography variant="body2" component="p">
+                    <Typography variant="body2">
                       Score: {card.score}
                     </Typography>
-                  </CardContent>
+                  </Grid>
                 ))}
-              </Card>
+              </Grid>
             </Grid>
-        </Grid>
-      </Grid>
-    </Grid>
-    );
+          </Grid>
+        </AccordionDetails>
+        <Typography variant="subtitle1" align="center">
+          {rapportTid}
+        </Typography>
+      </Accordion>
+    ))
+  );
 
   return (
     <div>
-      {cardContent}
+      {accordion}
     </div>
   );
 }
