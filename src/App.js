@@ -77,6 +77,45 @@ const AccordionDetails = withStyles((theme) => ({
   },
 }))(MuiAccordionDetails);
 
+function getData(filData) {
+  const requestedUrl = filData.requestedUrl.slice(0, -1);
+  const tooltip = "Gå til " + requestedUrl;
+  var rapportDatoData = filData.fetchTime;
+  var rapportDato = rapportDatoData.split("T");
+  var rapportTidspunkt = rapportDato[1].split(":");
+  rapportTidspunkt = rapportTidspunkt[0] + ":" + rapportTidspunkt[1];
+  rapportDato = rapportDato[0].split("-");
+  rapportDato = rapportDato[2] + "." + rapportDato[1] + "." + rapportDato[0]
+  const rapportTid = "Sist oppdatert: " + rapportDato + " " + rapportTidspunkt;
+  const data = [
+    filData.categories["accessibility"],
+    filData.categories["best-practices"],
+    filData.categories["performance"],
+    filData.categories["seo"]
+  ];
+
+  let score = data.map(res => ({
+      id: requestedUrl,
+      title: res.title,
+      score: res.score * 100,
+      barColor: ''
+  }));
+
+  for (var i = 0; i < score.length; i++) {
+    if (score[i].score > 80) {
+        score[i].barColor = "makeStyles-barColorGreen-4";
+    } else if (score[i].score < 80 && score[i].score > 30) {
+        score[i].barColor = "makeStyles-barColorOrange-5";
+    } else {
+        score[i].barColor = "makeStyles-barColorRed-36";
+    }
+  }
+
+  let endData = [{'requestedUrl': requestedUrl, 'tooltip': tooltip, 'rapportTid': rapportTid}, score];
+
+  return endData;
+}
+
 export default function App() {
   const [expanded, setExpanded] = React.useState('panel1');
 
@@ -85,51 +124,22 @@ export default function App() {
   };
 
   const classes = useStyles();
-  const jsondataTrondheimKommune = require('./trondheimKommuneRapport.json');
-  const jsondataTrondheim = require('./trondheimRapport.json');
-  const requestedUrlTrondheimKommune = jsondataTrondheimKommune.requestedUrl.slice(0, -1);
-  const tooltipTrondheimKommune = "Gå til " + requestedUrlTrondheimKommune;
-  const requestedUrlTrondheim = jsondataTrondheim.requestedUrl.slice(0, -1);
-  const tooltipTrondheim = "Gå til " + requestedUrlTrondheim;
+
+  let filTrondheimKommune = require('./trondheimKommuneRapport.json');
+  let dataTrondheimKommune = getData(filTrondheimKommune);
+  let filTrondheim = require('./trondheimRapport.json');
+  let dataTrondheim = getData(filTrondheim);
+
+  let dataScore = dataTrondheimKommune[1].concat(dataTrondheim[1]);
+
   let rapporter = [
-    {'requestedUrl': requestedUrlTrondheimKommune, 'tooltip': tooltipTrondheimKommune},
-    {'requestedUrl': requestedUrlTrondheim, 'tooltip': tooltipTrondheim}
+    dataTrondheimKommune[0],
+    dataTrondheim[0]
   ];
-  
-  var rapportDatoData = jsondataTrondheimKommune.fetchTime;
-  var rapportDato = rapportDatoData.split("T");
-  var rapportTidspunkt = rapportDato[1].split(":");
-  rapportTidspunkt = rapportTidspunkt[0] + ":" + rapportTidspunkt[1];
-  rapportDato = rapportDato[0].split("-");
-  rapportDato = rapportDato[2] + "." + rapportDato[1] + "." + rapportDato[0]
-  const rapportTid = "Sist oppdatert: " + rapportDato + " " + rapportTidspunkt;
-  const data = [
-                jsondataTrondheimKommune.categories["accessibility"],
-                jsondataTrondheimKommune.categories["best-practices"],
-                jsondataTrondheimKommune.categories["performance"],
-                jsondataTrondheimKommune.categories["seo"]
-              ];
-
-  let cards = data.map(res => ({
-    id: res.id,
-    title: res.title,
-    score: res.score * 100,
-    barColor: ''
-  }));
-
-  for (var i = 0; i < cards.length; i++) {
-    if (cards[i].score > 80) {
-      cards[i].barColor = classes.barColorGreen;
-    } else if (cards[i].score < 80 && cards[i].score > 30) {
-      cards[i].barColor = classes.barColorOrange;
-    } else {
-      cards[i].barColor = classes.barColorRed;
-    }
-  }
 
   const accordion = (
-    rapporter.map((rapport) => (
-      <Accordion square expanded={expanded === 'panel1'} onChange={handleChange('panel1')}>
+    rapporter.map((rapport, index) => (
+      <Accordion key={index} square expanded={expanded === 'panel1'} onChange={handleChange('panel1')}>
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls="panel1d-content"
@@ -141,25 +151,26 @@ export default function App() {
           <Grid container className={classes.root} spacing={3}>
             <Grid item xs={12}>
               <Grid container justify="center">
-                {cards.map((card) => (
-                  <Grid key={card.id} item xs={3}>
+                {dataScore.map((data, index) => (
+                  rapport.requestedUrl === data.id ?
+                  (<Grid key={index} item xs={3}>
                     <Typography variant="h6" component="h2">
-                      {card.title}
+                      {data.title}
                     </Typography>
                     <Typography variant="body1" component="h3">
-                      <CircularProgress className={card.barColor} variant="determinate" value={card.score} />
+                      <CircularProgress className={data.barColor} variant="determinate" value={data.score} />
                     </Typography>
                     <Typography variant="body2">
-                      Score: {card.score}
+                      Score: {data.score}
                     </Typography>
-                  </Grid>
+                  </Grid>) : null
                 ))}
               </Grid>
             </Grid>
           </Grid>
         </AccordionDetails>
         <Typography variant="subtitle1" align="center">
-          {rapportTid}
+          {rapport.rapportTid}
         </Typography>
       </Accordion>
     ))
