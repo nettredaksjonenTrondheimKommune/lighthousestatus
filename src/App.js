@@ -5,7 +5,6 @@ import {
   withStyles
 } from '@material-ui/core/styles';
 import {
-  Tooltip,
   Typography,
   CircularProgress,
   Grid
@@ -13,8 +12,6 @@ import {
 import MuiAccordion from '@material-ui/core/Accordion';
 import MuiAccordionSummary from '@material-ui/core/AccordionSummary';
 import MuiAccordionDetails from '@material-ui/core/AccordionDetails';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import LinkIcon from '@material-ui/icons/Link';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -26,6 +23,8 @@ const useStyles = makeStyles((theme) => ({
     flexShrink: 0
   },
   secondaryHeading: {
+    flexBasis: '25%',
+    flexShrink: 0,
     color: theme.palette.text.secondary
   },
   barColorGreen: {
@@ -41,21 +40,25 @@ const useStyles = makeStyles((theme) => ({
 
 const Accordion = withStyles({
   root: {
-    border: '1px solid rgba(0, 0, 0, .125)',
+    border: '2px solid rgba(0, 0, 0, .125)',
     boxShadow: 'none',
     '&:before': {
       display: 'none'
     },
     '&$expanded': {
       margin: '30px'
-    }
+    },
+    width: '75%',
+    marginLeft: 'auto !important',
+    marginRight: 'auto !important'
   },
   expanded: {}
 })(MuiAccordion);
 
 const AccordionSummary = withStyles({
   root: {
-    backgroundColor: 'rgba(0, 0, 0, .03)',
+    color: 'white',
+    backgroundColor: '#005aa7',
     borderBottom: '1px solid rgba(0, 0, 0, .125)',
     marginBottom: -1,
     minHeight: 56,
@@ -78,8 +81,18 @@ const AccordionDetails = withStyles((theme) => ({
 }))(MuiAccordionDetails);
 
 function getData(filData) {
-  const requestedUrl = filData.requestedUrl.slice(0, -1);
-  const tooltip = "Gå til " + requestedUrl;
+  let requestedUrl = filData.requestedUrl.slice(0, -1);
+  let requestedUrlLenketekst = '';
+  let urlLedetekst = '';
+  if (requestedUrl === 'https://www.trondheim.kommune.no') {
+    urlLedetekst = 'trondheim.kommune.no';
+    requestedUrlLenketekst = "Gå til " + urlLedetekst;
+  } else if (requestedUrl === 'https://www.trondheim.no') {
+    urlLedetekst = 'trondheim.no';
+    requestedUrlLenketekst = "Gå til " + urlLedetekst;
+  }
+  const lighthouseUrl = "https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=" + requestedUrl;
+  const lighthouseUrlLenketekst = "Gå til Lighthouse rapport";
   var rapportDatoData = filData.fetchTime;
   var rapportDato = rapportDatoData.split("T");
   var rapportTidspunkt = rapportDato[1].split(":");
@@ -111,18 +124,12 @@ function getData(filData) {
     }
   }
 
-  let endData = [{'requestedUrl': requestedUrl, 'tooltip': tooltip, 'rapportTid': rapportTid}, score];
+  let endData = [{'requestedUrl': requestedUrl, 'urlLedetekst': urlLedetekst, 'requestedUrlLenketekst': requestedUrlLenketekst, 'lighthouseUrl': lighthouseUrl, 'lighthouseUrlLenketekst': lighthouseUrlLenketekst, 'rapportTid': rapportTid}, score];
 
   return endData;
 }
 
 export default function App() {
-  const [expanded, setExpanded] = React.useState('panel1');
-
-  const handleChange = (panel) => (event, newExpanded) => {
-    setExpanded(newExpanded ? panel : false);
-  };
-
   const classes = useStyles();
 
   let filTrondheimKommune = require('./trondheimKommuneRapport.json');
@@ -139,13 +146,20 @@ export default function App() {
 
   const accordion = (
     rapporter.map((rapport, index) => (
-      <Accordion key={index} square expanded={expanded === 'panel1'} onChange={handleChange('panel1')}>
+      <Accordion key={index} expanded>
         <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel1d-content"
-          id="panel1d-header">
-          <Typography variant="h5" component="h2" className={classes.heading}>Status for: {rapport.requestedUrl}</Typography>
-          <Typography className={classes.secondaryHeading}><a href={rapport.requestedUrl}><Tooltip title={rapport.tooltip}><LinkIcon /></Tooltip></a></Typography>
+          aria-controls={index}
+          aria-label="Utvid"
+          id={rapport.requestedUrl}>
+          <Grid container className={classes.root} spacing={3}>
+            <Grid item xs={12}>
+              <Grid container justify="center">
+                <Grid item lg={6} xs={12}><Typography variant="h5" component="h1" className={classes.heading}>Status for: {rapport.urlLedetekst}</Typography></Grid>
+                <Grid item lg={3} xs={12}><Typography className={classes.secondaryHeading}><a href={rapport.requestedUrl}>{rapport.requestedUrlLenketekst}</a></Typography></Grid>
+                <Grid item lg={3} xs={12}><Typography className={classes.secondaryHeading}><a href={rapport.lighthouseUrl}>{rapport.lighthouseUrlLenketekst}</a></Typography></Grid>
+              </Grid>
+            </Grid>
+          </Grid>
         </AccordionSummary>
         <AccordionDetails>
           <Grid container className={classes.root} spacing={3}>
@@ -153,14 +167,12 @@ export default function App() {
               <Grid container justify="center">
                 {dataScore.map((data, index) => (
                   rapport.requestedUrl === data.id ?
-                  (<Grid key={index} item xs={3}>
+                  (<Grid key={index} item lg={3} sm={6} xs={12}>
                     <Typography variant="h6" component="h2">
                       {data.title}
                     </Typography>
-                    <Typography variant="body1" component="h3">
-                      <CircularProgress className={data.barColor} variant="determinate" value={data.score} />
-                    </Typography>
-                    <Typography variant="body2">
+                    <CircularProgress className={data.barColor} variant="determinate" value={data.score} />
+                    <Typography variant="body1">
                       Score: {data.score}
                     </Typography>
                   </Grid>) : null
@@ -169,7 +181,7 @@ export default function App() {
             </Grid>
           </Grid>
         </AccordionDetails>
-        <Typography variant="subtitle1" align="center">
+        <Typography variant="subtitle1" component="p" align="center">
           {rapport.rapportTid}
         </Typography>
       </Accordion>
